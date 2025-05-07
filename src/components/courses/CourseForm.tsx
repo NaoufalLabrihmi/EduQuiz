@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCourses } from "@/context/CourseContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
 export default function CourseForm() {
   const { addCourse } = useCourses();
@@ -23,7 +25,7 @@ export default function CourseForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !description || !authorName) {
+    if (!title || !description || !authorName || !pdfFile) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -31,24 +33,40 @@ export default function CourseForm() {
     setIsSubmitting(true);
     
     try {
-      // In a real app, we would upload the PDF file to a storage service
-      // and get a URL back. For this demo, we'll use a placeholder URL
-      const pdfUrl = pdfFile ? URL.createObjectURL(pdfFile) : "/sample.pdf";
+      // 1. Upload PDF to Supabase Storage
+      const pdfFileName = `${uuidv4()}-${pdfFile.name}`;
+      const { error: uploadError, data } = await supabase.storage
+        .from('course_pdfs')
+        .upload(pdfFileName, pdfFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
       
-      const newCourse = addCourse({
+      // 2. Get public URL for the PDF
+      const { data: { publicUrl } } = supabase.storage
+        .from('course_pdfs')
+        .getPublicUrl(pdfFileName);
+      
+      // 3. Create the course with the PDF URL
+      const newCourse = await addCourse({
         title,
         description,
         teacherId: "guest",
         teacherName: authorName,
-        pdfUrl,
+        pdfUrl: publicUrl,
         thumbnailUrl: thumbnailUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop"
       });
       
-      toast.success("Course created successfully");
-      navigate(`/courses/${newCourse.id}`);
+      if (newCourse) {
+        toast.success("Course created successfully");
+        navigate(`/courses/${newCourse.id}`);
+      } else {
+        throw new Error("Failed to create course");
+      }
     } catch (error) {
+      console.error("Error creating course:", error);
       toast.error("Failed to create course");
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }

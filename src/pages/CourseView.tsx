@@ -10,10 +10,11 @@ import QuizCreator from "@/components/quiz/QuizCreator";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function CourseView() {
   const { courseId } = useParams<{ courseId: string }>();
-  const { getCourse, getQuizByCourseId, saveQuizResult, addQuiz } = useCourses();
+  const { getCourse, getQuizByCourseId, saveQuizResult, addQuiz, loadCourses, isLoading } = useCourses();
   const navigate = useNavigate();
   
   const [showQuiz, setShowQuiz] = useState(false);
@@ -24,13 +25,26 @@ export default function CourseView() {
   const course = courseId ? getCourse(courseId) : undefined;
   const quiz = courseId ? getQuizByCourseId(courseId) : undefined;
   
+  // Reload data when the component mounts
   useEffect(() => {
-    if (courseId && !course) {
+    loadCourses();
+  }, []);
+  
+  useEffect(() => {
+    if (!isLoading && courseId && !course) {
       // Course not found, redirect to courses page
       toast.error("Course not found");
       navigate("/courses");
     }
-  }, [courseId, course, navigate]);
+  }, [courseId, course, navigate, isLoading]);
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center dark:bg-gray-900 dark:text-white">
+        <p className="text-xl text-gray-500 dark:text-gray-400">Loading...</p>
+      </div>
+    );
+  }
   
   if (!course) {
     return (
@@ -54,17 +68,24 @@ export default function CourseView() {
     setShowQuiz(true);
   };
   
-  const handleQuizComplete = (answers: number[], score: number) => {
+  const handleQuizComplete = async (answers: number[], score: number) => {
     // Save quiz results
     if (!quiz) return;
     
-    saveQuizResult({
-      userId: "guest",
-      quizId: quiz.id,
-      score,
-      totalQuestions: quiz.questions.length,
-      completedAt: new Date()
-    });
+    try {
+      await saveQuizResult({
+        userId: "guest",
+        quizId: quiz.id,
+        score,
+        totalQuestions: quiz.questions.length,
+        completedAt: new Date()
+      });
+      
+      toast.success("Quiz results saved successfully!");
+    } catch (error) {
+      console.error("Error saving quiz results:", error);
+      toast.error("Failed to save quiz results");
+    }
   };
   
   const handleCreateQuiz = () => {

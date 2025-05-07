@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +28,7 @@ export default function QuizCreator({ courseId, onComplete }: QuizCreatorProps) 
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!title) {
@@ -52,23 +51,27 @@ export default function QuizCreator({ courseId, onComplete }: QuizCreatorProps) 
     try {
       // Convert partial questions to full questions with IDs
       const fullQuestions = questions.map((q, index) => ({
-        id: `q-${index}-${Date.now()}`,
+        id: `q-${index}-${Date.now()}`, // This ID will be replaced by Supabase
         text: q.text!,
         options: q.options!,
         correctOptionIndex: q.correctOptionIndex!
       }));
       
-      addQuiz({
+      const result = await addQuiz({
         courseId,
         title,
         questions: fullQuestions
       });
       
+      if (!result) {
+        throw new Error("Failed to create quiz");
+      }
+      
       toast.success("Quiz created successfully");
       onComplete();
     } catch (error) {
+      console.error("Error creating quiz:", error);
       toast.error("Failed to create quiz");
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
