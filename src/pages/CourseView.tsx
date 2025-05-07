@@ -101,18 +101,18 @@ export default function CourseView() {
     <div className="min-h-screen flex flex-col dark:bg-gray-900 dark:text-white">
       <Header />
       
-      <main className="flex-1 py-6 px-4">
-        <div className="container mx-auto max-w-5xl">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-2 dark:text-white">{course.title}</h1>
-            <p className="text-gray-600 mb-4 dark:text-gray-400">{course.description}</p>
-            <div className="flex items-center text-sm text-gray-500 mb-6 dark:text-gray-400">
-              <span>Created by {course.teacherName}</span>
-              <span className="mx-2">•</span>
-              <span>Updated {course.updatedAt.toLocaleDateString()}</span>
-            </div>
-            
-            {!showQuiz && !showQuizCreator && (
+      <main className="flex-1 py-6 px-4 bg-gradient-to-b from-gray-900 to-gray-950">
+        <div className="container mx-auto max-w-6xl">
+          {!showQuiz && !showQuizCreator && (
+            <div className="mb-6 bg-gray-800/50 backdrop-blur-sm p-6 rounded-xl shadow-lg">
+              <h1 className="text-3xl font-bold mb-2 text-white">{course.title}</h1>
+              <p className="text-gray-300 mb-4">{course.description}</p>
+              <div className="flex items-center text-sm text-gray-400 mb-6">
+                <span>Created by {course.teacherName}</span>
+                <span className="mx-2">•</span>
+                <span>Updated {course.updatedAt.toLocaleDateString()}</span>
+              </div>
+              
               <div className="flex flex-wrap gap-3">
                 {!quiz && (
                   <Button onClick={handleCreateQuiz} className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -126,12 +126,12 @@ export default function CourseView() {
                   </Button>
                 )}
                 
-                <Button onClick={() => navigate("/courses")} variant="outline" className="dark:border-gray-700 dark:text-gray-300">
+                <Button onClick={() => navigate("/courses")} variant="outline" className="dark:border-gray-600 dark:text-gray-300">
                   Back to Courses
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
           
           {showQuiz && quiz ? (
             <QuizForm questions={quiz.questions} onComplete={handleQuizComplete} />
@@ -139,10 +139,10 @@ export default function CourseView() {
             <QuizCreator courseId={course.id} onComplete={handleQuizCreationComplete} />
           ) : (
             <div className="space-y-6">
-              <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700 overflow-hidden">
-                <CardHeader className="bg-gray-100 dark:bg-gray-700 border-b dark:border-gray-600">
+              <Card className="dark:bg-gray-800/80 dark:text-white dark:border-gray-700 overflow-hidden shadow-2xl">
+                <CardHeader className="bg-gray-800 dark:bg-gray-800 border-b dark:border-gray-600">
                   <div className="flex justify-between items-center">
-                    <CardTitle>{course.title}</CardTitle>
+                    <CardTitle>Course Presentation</CardTitle>
                     <div className="flex items-center space-x-2">
                       <Button size="sm" variant="outline" className="dark:border-gray-600 dark:text-gray-300">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -161,9 +161,9 @@ export default function CourseView() {
               </Card>
               
               {courseComplete && quiz && (
-                <Card className="bg-blue-50 border-blue-200 dark:bg-gray-800 dark:border-blue-900">
+                <Card className="bg-blue-950/50 border-blue-900 shadow-blue-900/20 shadow-lg">
                   <CardHeader>
-                    <CardTitle className="text-blue-800 dark:text-blue-400">Ready for a quiz?</CardTitle>
+                    <CardTitle className="text-blue-400">Ready for a quiz?</CardTitle>
                     <CardDescription className="dark:text-gray-300">
                       Now that you've completed the course material, test your knowledge with a quiz!
                     </CardDescription>

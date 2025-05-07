@@ -1,10 +1,19 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  ZoomIn, 
+  ZoomOut, 
+  Maximize, 
+  ChevronDown
+} from "lucide-react";
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { cn } from '@/lib/utils';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -19,10 +28,30 @@ export default function PDFViewer({ pdfUrl, onComplete }: PDFViewerProps) {
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [scale, setScale] = useState<number>(1.2);
+  const [scale, setScale] = useState<number>(1.4); // Increased default scale
   const [fullscreen, setFullscreen] = useState<boolean>(false);
+  const [presentationMode, setPresentationMode] = useState<boolean>(false);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   
   const containerRef = useRef<HTMLDivElement>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+
+  // Calculate available space for the PDF view
+  useEffect(() => {
+    const handleResize = () => {
+      if (pdfContainerRef.current) {
+        const { width, height } = pdfContainerRef.current.getBoundingClientRect();
+        setDimensions({ width, height });
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [presentationMode]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -63,41 +92,79 @@ export default function PDFViewer({ pdfUrl, onComplete }: PDFViewerProps) {
       setFullscreen(false);
     }
   }
+
+  function togglePresentationMode() {
+    setPresentationMode(!presentationMode);
+    if (!presentationMode) {
+      setScale(1.6); // Larger scale in presentation mode
+    } else {
+      setScale(1.4); // Back to default when exiting presentation mode
+    }
+  }
   
   // Calculate page progress
   const progress = numPages ? Math.round((pageNumber / numPages) * 100) : 0;
 
+  // Keyboard navigation
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (presentationMode || fullscreen) {
+        if (e.key === 'ArrowRight' || e.key === 'Space') {
+          changePage(1);
+        } else if (e.key === 'ArrowLeft') {
+          changePage(-1);
+        } else if (e.key === 'Escape') {
+          if (presentationMode) setPresentationMode(false);
+          if (fullscreen && document.fullscreenElement) document.exitFullscreen();
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [presentationMode, fullscreen, pageNumber, numPages]);
+
   return (
-    <div className="flex flex-col" ref={containerRef}>
-      <div className="bg-gray-100 dark:bg-gray-800 p-2 border-b dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+    <div 
+      className={cn(
+        "flex flex-col transition-all duration-300", 
+        presentationMode && "fixed inset-0 z-50 bg-gray-900"
+      )} 
+      ref={containerRef}
+    >
+      {/* Presentation mode toolbar */}
+      <div className={cn(
+        "canva-style-toolbar shadow-lg z-10",
+        presentationMode ? "px-6 py-4" : ""
+      )}>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center space-x-3">
             <Button 
               onClick={() => changePage(-1)} 
               disabled={pageNumber <= 1 || loading}
-              variant="outline" 
+              variant="ghost" 
               size="sm"
-              className="dark:bg-gray-700 dark:border-gray-600"
+              className="dark:hover:bg-gray-700"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              <ChevronLeft className="h-5 w-5" />
             </Button>
             
-            <div className="text-sm dark:text-gray-300">
-              Page <span className="font-medium">{pageNumber}</span> of <span className="font-medium">{numPages || '-'}</span>
+            <div className="text-sm bg-gray-700/50 backdrop-blur-sm px-4 py-1 rounded-full">
+              {pageNumber} / {numPages || '-'}
             </div>
             
             <Button 
               onClick={() => changePage(1)} 
               disabled={pageNumber >= (numPages || 1) || loading}
-              variant="outline" 
+              variant="ghost" 
               size="sm"
-              className={`dark:bg-gray-700 dark:border-gray-600 ${pageNumber === (numPages || 1) ? 'bg-green-600 text-white hover:bg-green-700' : ''}`}
+              className="dark:hover:bg-gray-700"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
           
-          <div className="bg-gray-200 dark:bg-gray-700 h-2 w-36 rounded-full overflow-hidden">
+          <div className="bg-gray-700/30 h-2 w-48 rounded-full overflow-hidden hidden md:block">
             <div 
               className="bg-blue-500 h-full" 
               style={{ width: `${progress}%` }}
@@ -111,40 +178,52 @@ export default function PDFViewer({ pdfUrl, onComplete }: PDFViewerProps) {
           <div className="flex items-center space-x-2">
             <Button 
               onClick={zoomOut} 
-              variant="outline" 
+              variant="ghost" 
               size="sm"
-              className="dark:bg-gray-700 dark:border-gray-600"
+              className="dark:hover:bg-gray-700"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <ZoomOut className="h-4 w-4" />
             </Button>
             
             <Button 
               onClick={zoomIn} 
-              variant="outline" 
+              variant="ghost" 
               size="sm"
-              className="dark:bg-gray-700 dark:border-gray-600"
+              className="dark:hover:bg-gray-700"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <ZoomIn className="h-4 w-4" />
             </Button>
             
             <Button 
-              onClick={toggleFullscreen} 
-              variant="outline" 
+              onClick={togglePresentationMode}
+              variant={presentationMode ? "secondary" : "ghost"}
               size="sm"
-              className="dark:bg-gray-700 dark:border-gray-600"
+              className="dark:hover:bg-gray-700"
             >
-              {fullscreen ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14h6m0 0v6m0-6-7 7"/><path d="M20 10h-6m0 0V4m0 6 7-7"/></svg>
+              {presentationMode ? (
+                <ChevronDown className="h-4 w-4 mr-1" />
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                <Maximize className="h-4 w-4 mr-1" />
               )}
+              {presentationMode ? "Exit" : "Presentation"}
             </Button>
           </div>
         </div>
       </div>
 
-      <Card className="p-4 mb-4 w-full dark:bg-gray-800 dark:border-gray-700 flex justify-center">
-        {loading && <div className="py-20 text-center text-gray-500 dark:text-gray-400">Loading PDF...</div>}
+      <div 
+        ref={pdfContainerRef}
+        className={cn(
+          "flex-1 flex justify-center items-center overflow-auto p-4 transition-all duration-300 canva-style-editor",
+          presentationMode ? "bg-gray-900" : ""
+        )}
+      >
+        {loading && (
+          <div className="py-20 text-center text-gray-400 dark:text-gray-400">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+            <div className="mt-4">Loading presentation...</div>
+          </div>
+        )}
         
         {error && (
           <div className="py-10 text-center text-red-500">
@@ -159,47 +238,80 @@ export default function PDFViewer({ pdfUrl, onComplete }: PDFViewerProps) {
           file={pdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
-          className="flex justify-center"
+          className={cn(
+            "flex justify-center",
+            presentationMode ? "max-w-screen-xl mx-auto" : ""
+          )}
         >
           <Page 
             pageNumber={pageNumber} 
             renderTextLayer={true}
             renderAnnotationLayer={true}
-            className="border shadow-sm dark:border-gray-700"
+            className={cn(
+              "shadow-xl transition-all duration-200",
+              presentationMode ? "rounded-lg overflow-hidden" : "border dark:border-gray-700"
+            )}
             scale={scale}
           />
         </Document>
-      </Card>
-
-      <div className="flex items-center justify-between mb-6 bg-white dark:bg-gray-800 p-3 border rounded-lg dark:border-gray-700">
-        <Button 
-          onClick={() => changePage(-1)} 
-          disabled={pageNumber <= 1 || loading}
-          variant="outline"
-          size="sm"
-          className="dark:bg-gray-700 dark:border-gray-600"
-        >
-          Previous
-        </Button>
-        <div className="flex-1 mx-4">
-          <input
-            type="range"
-            min={1}
-            max={numPages || 1}
-            value={pageNumber}
-            onChange={(e) => setPageNumber(parseInt(e.target.value))}
-            className="w-full accent-blue-500"
-          />
-        </div>
-        <Button 
-          onClick={() => changePage(1)} 
-          disabled={pageNumber >= (numPages || 1) || loading}
-          className={pageNumber === (numPages || 1) ? 'bg-green-600 hover:bg-green-700 text-white' : 'dark:bg-blue-700 dark:hover:bg-blue-600'}
-          size="sm"
-        >
-          {pageNumber === (numPages || 1) ? "Complete" : "Next"}
-        </Button>
       </div>
+
+      {!presentationMode && (
+        <div className="glass-panel mt-4 p-3 rounded-lg flex items-center justify-between">
+          <Button 
+            onClick={() => changePage(-1)} 
+            disabled={pageNumber <= 1 || loading}
+            variant="outline"
+            size="sm"
+            className="dark:bg-gray-800 dark:border-gray-600"
+          >
+            Previous
+          </Button>
+          <div className="flex-1 mx-4">
+            <input
+              type="range"
+              min={1}
+              max={numPages || 1}
+              value={pageNumber}
+              onChange={(e) => setPageNumber(parseInt(e.target.value))}
+              className="w-full accent-blue-500"
+            />
+          </div>
+          <Button 
+            onClick={() => changePage(1)} 
+            disabled={pageNumber >= (numPages || 1) || loading}
+            className={pageNumber === (numPages || 1) ? 'bg-green-600 hover:bg-green-700 text-white' : 'dark:bg-blue-600 dark:hover:bg-blue-500'}
+            size="sm"
+          >
+            {pageNumber === (numPages || 1) ? "Complete" : "Next"}
+          </Button>
+        </div>
+      )}
+      
+      {/* Presentation mode navigation arrows */}
+      {presentationMode && (
+        <>
+          <button 
+            className="fixed left-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-3 transition-all"
+            onClick={() => changePage(-1)}
+            disabled={pageNumber <= 1}
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          
+          <button 
+            className="fixed right-4 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full p-3 transition-all"
+            onClick={() => changePage(1)}
+            disabled={pageNumber >= (numPages || 1)}
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+          
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
+            {pageNumber} / {numPages || '-'} - Press arrows or space to navigate
+          </div>
+        </>
+      )}
     </div>
   );
 }
