@@ -2,7 +2,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-	darkMode: ["class"],
+	darkMode: ["class", '[data-theme="dark"]'],
 	content: [
 		"./pages/**/*.{ts,tsx}",
 		"./components/**/*.{ts,tsx}",
@@ -64,10 +64,10 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				edu: {
-					purple: '#9b87f5',
-					'purple-dark': '#7E69AB',
-					'soft-purple': '#E5DEFF',
 					blue: '#1EAEDB',
+					'blue-dark': '#0A8CBF',
+					'soft-blue': '#E5F7FF',
+					teal: '#4ECDC4',
 					red: '#ea384c',
 					gray: '#8E9196',
 					'light-gray': '#F1F1F1',

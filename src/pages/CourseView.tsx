@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCourses } from "@/context/CourseContext";
-import { useAuth } from "@/context/AuthContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import PDFViewer from "@/components/pdf/PDFViewer";
@@ -14,7 +13,6 @@ import { toast } from "sonner";
 
 export default function CourseView() {
   const { courseId } = useParams<{ courseId: string }>();
-  const { user } = useAuth();
   const { getCourse, getQuizByCourseId, saveQuizResult, addQuiz } = useCourses();
   const navigate = useNavigate();
   
@@ -36,8 +34,8 @@ export default function CourseView() {
   
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-gray-500">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center dark:bg-gray-900 dark:text-white">
+        <p className="text-xl text-gray-500 dark:text-gray-400">Loading...</p>
       </div>
     );
   }
@@ -57,11 +55,11 @@ export default function CourseView() {
   };
   
   const handleQuizComplete = (answers: number[], score: number) => {
-    if (!user || !quiz) return;
-    
     // Save quiz results
+    if (!quiz) return;
+    
     saveQuizResult({
-      userId: user.id,
+      userId: "guest",
       quizId: quiz.id,
       score,
       totalQuestions: quiz.questions.length,
@@ -78,19 +76,16 @@ export default function CourseView() {
     toast.success("Quiz created successfully!");
   };
   
-  const isTeacher = user?.role === "teacher";
-  const isAuthor = isTeacher && user?.id === course.teacherId;
-  
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col dark:bg-gray-900 dark:text-white">
       <Header />
       
-      <main className="flex-1 py-10 px-4">
+      <main className="flex-1 py-6 px-4">
         <div className="container mx-auto max-w-5xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
-            <p className="text-gray-600 mb-4">{course.description}</p>
-            <div className="flex items-center text-sm text-gray-500 mb-6">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold mb-2 dark:text-white">{course.title}</h1>
+            <p className="text-gray-600 mb-4 dark:text-gray-400">{course.description}</p>
+            <div className="flex items-center text-sm text-gray-500 mb-6 dark:text-gray-400">
               <span>Created by {course.teacherName}</span>
               <span className="mx-2">•</span>
               <span>Updated {course.updatedAt.toLocaleDateString()}</span>
@@ -98,19 +93,19 @@ export default function CourseView() {
             
             {!showQuiz && !showQuizCreator && (
               <div className="flex flex-wrap gap-3">
-                {isAuthor && !quiz && (
-                  <Button onClick={handleCreateQuiz} className="btn-primary">
+                {!quiz && (
+                  <Button onClick={handleCreateQuiz} className="bg-blue-600 hover:bg-blue-700 text-white">
                     Create Quiz
                   </Button>
                 )}
                 
                 {courseComplete && quiz && (
-                  <Button onClick={startQuiz} className="btn-primary">
+                  <Button onClick={startQuiz} className="bg-green-600 hover:bg-green-700 text-white">
                     Start Quiz
                   </Button>
                 )}
                 
-                <Button onClick={() => navigate("/courses")} variant="outline">
+                <Button onClick={() => navigate("/courses")} variant="outline" className="dark:border-gray-700 dark:text-gray-300">
                   Back to Courses
                 </Button>
               </div>
@@ -122,29 +117,38 @@ export default function CourseView() {
           ) : showQuizCreator ? (
             <QuizCreator courseId={course.id} onComplete={handleQuizCreationComplete} />
           ) : (
-            <div className="space-y-10">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Course Material</CardTitle>
-                  <CardDescription>
-                    Read through the course material. You can take the quiz once you've completed the material.
-                  </CardDescription>
+            <div className="space-y-6">
+              <Card className="dark:bg-gray-800 dark:text-white dark:border-gray-700 overflow-hidden">
+                <CardHeader className="bg-gray-100 dark:bg-gray-700 border-b dark:border-gray-600">
+                  <div className="flex justify-between items-center">
+                    <CardTitle>{course.title}</CardTitle>
+                    <div className="flex items-center space-x-2">
+                      <Button size="sm" variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span className="ml-1">Download</span>
+                      </Button>
+                      <Button size="sm" variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        <span className="ml-1">Share</span>
+                      </Button>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="pt-4">
+                <CardContent className="pt-0 pb-0 px-0">
                   <PDFViewer pdfUrl={course.pdfUrl} onComplete={handlePDFComplete} />
                 </CardContent>
               </Card>
               
               {courseComplete && quiz && (
-                <Card className="bg-edu-soft-purple border-edu-purple">
+                <Card className="bg-blue-50 border-blue-200 dark:bg-gray-800 dark:border-blue-900">
                   <CardHeader>
-                    <CardTitle>Ready for a quiz?</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-blue-800 dark:text-blue-400">Ready for a quiz?</CardTitle>
+                    <CardDescription className="dark:text-gray-300">
                       Now that you've completed the course material, test your knowledge with a quiz!
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button onClick={startQuiz} className="btn-primary">
+                    <Button onClick={startQuiz} className="bg-green-600 hover:bg-green-700 text-white">
                       Start Quiz
                     </Button>
                   </CardContent>

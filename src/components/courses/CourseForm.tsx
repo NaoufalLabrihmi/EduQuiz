@@ -7,12 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCourses } from "@/context/CourseContext";
-import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function CourseForm() {
   const { addCourse } = useCourses();
-  const { user } = useAuth();
   const navigate = useNavigate();
   
   const [title, setTitle] = useState("");
@@ -20,17 +18,13 @@ export default function CourseForm() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authorName, setAuthorName] = useState("");
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !description) {
+    if (!title || !description || !authorName) {
       toast.error("Please fill in all required fields");
-      return;
-    }
-    
-    if (!user) {
-      toast.error("You must be logged in to create a course");
       return;
     }
     
@@ -44,8 +38,8 @@ export default function CourseForm() {
       const newCourse = addCourse({
         title,
         description,
-        teacherId: user.id,
-        teacherName: user.name,
+        teacherId: "guest",
+        teacherName: authorName,
         pdfUrl,
         thumbnailUrl: thumbnailUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop"
       });
@@ -73,10 +67,10 @@ export default function CourseForm() {
   };
   
   return (
-    <Card className="w-full max-w-3xl mx-auto">
+    <Card className="w-full max-w-3xl mx-auto dark:bg-gray-800 dark:text-white">
       <CardHeader>
         <CardTitle>Create New Course</CardTitle>
-        <CardDescription>
+        <CardDescription className="dark:text-gray-300">
           Add a new course with learning materials and a quiz
         </CardDescription>
       </CardHeader>
@@ -90,6 +84,19 @@ export default function CourseForm() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Introduction to JavaScript"
               required
+              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="authorName">Author Name</Label>
+            <Input
+              id="authorName"
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              placeholder="Your Name"
+              required
+              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
             />
           </div>
           
@@ -102,6 +109,7 @@ export default function CourseForm() {
               placeholder="A comprehensive introduction to JavaScript programming language..."
               rows={4}
               required
+              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
             />
           </div>
           
@@ -112,10 +120,10 @@ export default function CourseForm() {
               type="file"
               accept="application/pdf"
               onChange={handleFileChange}
-              className="cursor-pointer"
+              className="cursor-pointer dark:bg-gray-700 dark:text-white dark:border-gray-600"
               required
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Upload your course material as a PDF file (max 10MB)
             </p>
           </div>
@@ -127,8 +135,9 @@ export default function CourseForm() {
               value={thumbnailUrl}
               onChange={(e) => setThumbnailUrl(e.target.value)}
               placeholder="https://example.com/image.jpg"
+              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Enter a URL for the course thumbnail image
             </p>
           </div>
@@ -138,7 +147,7 @@ export default function CourseForm() {
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            className="btn-primary"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isSubmitting ? "Creating..." : "Create Course"}
           </Button>
