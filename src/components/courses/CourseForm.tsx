@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,17 +9,20 @@ import { useCourses } from "@/context/CourseContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
+import { UploadCloud, Image as ImageIcon, FileText } from "lucide-react";
+import React from "react";
 
-export default function CourseForm() {
-  const { addCourse } = useCourses();
+export default function CourseForm({ onCourseCreated, onFormChange, submitting, initialValues }: { onCourseCreated?: (courseId: string) => void, onFormChange?: (data: any) => void, submitting?: boolean, initialValues?: any }) {
+  const { addCourse, addQuiz } = useCourses();
   const navigate = useNavigate();
   
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [title, setTitle] = useState(initialValues?.title || "");
+  const [description, setDescription] = useState(initialValues?.description || "");
+  const [pdfFile, setPdfFile] = useState<File | null>(initialValues?.pdfFile || null);
+  const [thumbnailUrl, setThumbnailUrl] = useState(initialValues?.thumbnailUrl || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authorName, setAuthorName] = useState("");
+  const [authorName, setAuthorName] = useState(initialValues?.teacherName || "");
+  const [pdfError, setPdfError] = useState("");
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,12 +57,39 @@ export default function CourseForm() {
         teacherId: "guest",
         teacherName: authorName,
         pdfUrl: publicUrl,
-        thumbnailUrl: thumbnailUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop"
+        thumbnailUrl: thumbnailUrl || "https://images.wallpapersden.com/image/download/tree-alone-dark-evening-4k_bWZpam2UmZqaraWkpJRobWllrWdma2U.jpg"
       });
       
       if (newCourse) {
         toast.success("Course created successfully");
+        // Create a default quiz for the new course
+        const defaultQuiz = await addQuiz({
+          courseId: newCourse.id,
+          title: `${newCourse.title} Quiz`,
+          questions: [
+            {
+              id: `q-0-${Date.now()}`,
+              text: "Sample question: Replace this with your own!",
+              options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+              correctOptionIndex: 0
+            }
+          ]
+        });
+        if (defaultQuiz) {
+          toast.success("Default quiz created. Please edit your quiz.");
+          if (onCourseCreated) {
+            onCourseCreated(newCourse.id);
+          } else {
+            navigate(`/courses/${newCourse.id}`);
+          }
+        } else {
+          toast.error("Failed to create default quiz. You can add one later.");
+          if (onCourseCreated) {
+            onCourseCreated(newCourse.id);
+          } else {
         navigate(`/courses/${newCourse.id}`);
+          }
+        }
       } else {
         throw new Error("Failed to create course");
       }
@@ -77,100 +106,165 @@ export default function CourseForm() {
       const file = e.target.files[0];
       if (file.type === "application/pdf") {
         setPdfFile(file);
+        setPdfError("");
         toast.success("PDF uploaded successfully");
+        emitFormChange();
       } else {
+        setPdfError("Please upload a PDF file");
         toast.error("Please upload a PDF file");
       }
     }
   };
   
+  // Call onFormChange with the current form data
+  const emitFormChange = () => {
+    if (onFormChange) {
+      onFormChange({
+        title,
+        description,
+        teacherId: "guest",
+        teacherName: authorName,
+        pdfFile,
+        thumbnailUrl
+      });
+    }
+  };
+
+  // In render, determine which file to show
+  const displayedPdfFile = pdfFile || initialValues?.pdfFile || null;
+
+  useEffect(() => {
+    emitFormChange();
+    // eslint-disable-next-line
+  }, [pdfFile]);
+  
   return (
-    <Card className="w-full max-w-3xl mx-auto dark:bg-gray-800 dark:text-white">
-      <CardHeader>
-        <CardTitle>Create New Course</CardTitle>
-        <CardDescription className="dark:text-gray-300">
+    <Card className="mx-2 md:mx-6 glass-card bg-gradient-to-br from-blue-50/80 to-white/80 border-2 border-blue-200/60 shadow-xl rounded-3xl animate-fade-in-fast p-2 md:p-6">
+      <CardHeader className="mb-4">
+        <div className="flex items-center gap-3 mb-2">
+          <FileText className="w-7 h-7 text-blue-400" />
+          <CardTitle className="text-2xl font-extrabold text-blue-900 drop-shadow">Course Details</CardTitle>
+        </div>
+        <CardDescription className="text-blue-700/80 font-medium">
           Add a new course with learning materials and a quiz
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">Course Title</Label>
+      <div>
+        <CardContent className="space-y-8">
+          {/* Course Title */}
+          <div className="mb-6">
+            <Label htmlFor="title" className="block mb-2 text-blue-700 font-bold text-base">Course Title</Label>
             <Input
               id="title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Introduction to JavaScript"
+              onChange={(e) => { setTitle(e.target.value); emitFormChange(); }}
+              placeholder=""
               required
-              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              disabled={submitting}
+              className="bg-white/80 border-2 border-blue-100 rounded-xl px-4 py-4 text-lg text-blue-900 font-semibold focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all"
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="authorName">Author Name</Label>
+          {/* Author Name */}
+          <div className="mb-6">
+            <Label htmlFor="authorName" className="block mb-2 text-blue-700 font-bold text-base">Author Name</Label>
             <Input
               id="authorName"
               value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              placeholder="Your Name"
+              onChange={(e) => { setAuthorName(e.target.value); emitFormChange(); }}
+              placeholder=""
               required
-              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              disabled={submitting}
+              className="bg-white/80 border-2 border-blue-100 rounded-xl px-4 py-4 text-lg text-blue-900 font-semibold focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all"
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Course Description</Label>
+          {/* Description */}
+          <div className="mb-6">
+            <Label htmlFor="description" className="block mb-2 text-blue-700 font-bold text-base">Course Description</Label>
             <Textarea
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="A comprehensive introduction to JavaScript programming language..."
+              onChange={(e) => { setDescription(e.target.value); emitFormChange(); }}
+              placeholder=""
               rows={4}
               required
-              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              disabled={submitting}
+              className="bg-white/80 border-2 border-blue-100 rounded-xl px-4 py-4 text-lg text-blue-900 font-semibold focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all"
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="pdfFile">Course Material (PDF)</Label>
-            <Input
+          {/* PDF Upload Dropzone */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <UploadCloud className="w-6 h-6 text-blue-400" />
+              <span className="text-blue-900 font-bold text-lg">Course Material (PDF)</span>
+            </div>
+            <label htmlFor="pdfFile" className="block cursor-pointer">
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-blue-200 rounded-xl bg-white/70 hover:bg-blue-50 transition-all p-6 text-blue-500 font-semibold text-lg shadow-inner">
+                {displayedPdfFile ? (
+                  <></>
+                ) : (
+                  <span className="flex flex-col items-center gap-2"><UploadCloud className="w-10 h-10 text-blue-300" /> <span>Click or drag PDF here</span></span>
+                )}
+                <input
               id="pdfFile"
               type="file"
               accept="application/pdf"
-              onChange={handleFileChange}
-              className="cursor-pointer dark:bg-gray-700 dark:text-white dark:border-gray-600"
-              required
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Upload your course material as a PDF file (max 10MB)
-            </p>
+                  onChange={(e) => { handleFileChange(e); emitFormChange(); }}
+                  className="hidden"
+                  disabled={submitting}
+                />
+              </div>
+            </label>
+            {/* Show uploaded PDF info */}
+            {displayedPdfFile && (
+              <div className="mt-4 flex items-center gap-4 glass-card bg-gradient-to-br from-blue-100/80 to-white/80 border border-blue-200/60 rounded-xl px-4 py-3 shadow animate-fade-in-fast">
+                <FileText className="w-7 h-7 text-blue-500" />
+                <div className="flex-1">
+                  <div className="text-blue-900 font-bold text-base">Hi! You uploaded this file:</div>
+                  <div className="text-blue-700 font-semibold text-sm truncate">{displayedPdfFile.name}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPdfFile(null);
+                    if (onFormChange) {
+                      onFormChange({
+                        title,
+                        description,
+                        teacherId: "guest",
+                        teacherName: authorName,
+                        pdfFile: null,
+                        thumbnailUrl
+                      });
+                    }
+                  }}
+                  className="ml-2 px-4 py-2 rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 text-white font-bold shadow hover:scale-105 active:scale-95 transition-all duration-150"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+            {pdfError && <p className="text-red-500 text-sm mt-2 animate-fade-in-fast">{pdfError}</p>}
+            <p className="text-xs text-blue-400 mt-2">Upload your course material as a PDF file (max 10MB)</p>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="thumbnailUrl">Thumbnail URL (Optional)</Label>
+          {/* Thumbnail URL */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-1">
+              <ImageIcon className="w-5 h-5 text-blue-300" />
+              <span className="text-blue-700 font-semibold text-base">Thumbnail URL (Optional)</span>
+            </div>
+            <Label htmlFor="thumbnailUrl" className="block mb-2 text-blue-700 font-bold text-base">Thumbnail URL</Label>
             <Input
               id="thumbnailUrl"
               value={thumbnailUrl}
-              onChange={(e) => setThumbnailUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              onChange={(e) => { setThumbnailUrl(e.target.value); emitFormChange(); }}
+              placeholder=""
+              disabled={submitting}
+              className="bg-white/80 border-2 border-blue-100 rounded-xl px-4 py-4 text-lg text-blue-900 font-semibold focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all"
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Enter a URL for the course thumbnail image
-            </p>
+            <p className="text-xs text-blue-400 mt-2">Enter a URL for the course thumbnail image</p>
           </div>
         </CardContent>
-        
-        <CardFooter className="flex justify-end">
-          <Button 
-            type="submit" 
-            disabled={isSubmitting}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            {isSubmitting ? "Creating..." : "Create Course"}
-          </Button>
-        </CardFooter>
-      </form>
+      </div>
     </Card>
   );
 }

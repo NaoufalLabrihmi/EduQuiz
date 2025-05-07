@@ -17,6 +17,7 @@ import CourseView from "./pages/CourseView";
 import CourseCreation from "./pages/CourseCreation";
 import AboutPage from "./pages/AboutPage";
 import NotFound from "./pages/NotFound";
+import CourseQuizView from "./pages/CourseQuizView";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ export default function App() {
                 <Route path="/courses/:courseId" element={<CourseView />} />
                 <Route path="/create-course" element={<CourseCreation />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/courses/:courseId/quiz" element={<CourseQuizView />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
