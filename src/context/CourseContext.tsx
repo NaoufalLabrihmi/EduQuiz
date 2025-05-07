@@ -83,7 +83,8 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const questions: Question[] = questionsData.map(q => ({
           id: q.id,
           text: q.text,
-          options: Array.isArray(q.options) ? q.options : [],
+          // Convert Json array to string array explicitly
+          options: Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
           correctOptionIndex: q.correct_option_index
         }));
         
@@ -231,7 +232,8 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const questions: Question[] = questionsData.map(q => ({
         id: q.id,
         text: q.text,
-        options: Array.isArray(q.options) ? q.options : [],
+        // Convert Json array to string array explicitly
+        options: Array.isArray(q.options) ? q.options.map(opt => String(opt)) : [],
         correctOptionIndex: q.correct_option_index
       }));
       
