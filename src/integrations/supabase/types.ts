@@ -143,6 +143,35 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      },
+      profiles: {
+        Row: {
+          id: string;
+          username: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          username: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          username?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey",
+            columns: ["id"],
+            isOneToOne: true,
+            referencedRelation: "users",
+            referencedColumns: ["id"]
+          }
+        ];
       }
     }
     Views: {

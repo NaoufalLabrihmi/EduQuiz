@@ -5,10 +5,16 @@ import { useCourses } from "@/context/CourseContext";
 import CourseCard from "@/components/courses/CourseCard";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import Login from "@/pages/Login";
+import SignUp from "@/pages/SignUp";
+import { useState } from "react";
 
 export default function HomePage() {
   const { user } = useAuth();
   const { courses } = useCourses();
+  const [openLogin, setOpenLogin] = useState(false);
+  const [openSignUp, setOpenSignUp] = useState(false);
   
   // Show only 3 featured courses on homepage
   const featuredCourses = courses.slice(0, 3);
@@ -38,9 +44,14 @@ export default function HomePage() {
                       <Link to="/courses">Explore Courses</Link>
                     </Button>
                     {!user && (
-                      <Button asChild size="lg" variant="outline" className="text-blue-900 border-blue-400 hover:bg-blue-50/40 animate-fade-in-fast">
-                        <Link to="/login">Sign In</Link>
-                      </Button>
+                      <>
+                        <Button asChild size="lg" variant="outline" className="text-blue-900 border-blue-400 hover:bg-blue-50/40 animate-fade-in-fast">
+                          <Link to="/login">Sign In</Link>
+                        </Button>
+                        <Button asChild size="lg" variant="outline" className="text-fuchsia-700 border-fuchsia-400 hover:bg-fuchsia-50/40 animate-fade-in-fast">
+                          <Link to="/signup">Sign Up</Link>
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>

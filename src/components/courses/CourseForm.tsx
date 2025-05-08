@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { UploadCloud, Image as ImageIcon, FileText } from "lucide-react";
 import React from "react";
+import axios from "axios";
 
 export default function CourseForm({ onCourseCreated, onFormChange, submitting, initialValues }: { onCourseCreated?: (courseId: string) => void, onFormChange?: (data: any) => void, submitting?: boolean, initialValues?: any }) {
   const { addCourse, addQuiz } = useCourses();
@@ -50,19 +51,46 @@ export default function CourseForm({ onCourseCreated, onFormChange, submitting, 
         .from('course_pdfs')
         .getPublicUrl(pdfFileName);
       
-      // 3. Create the course with the PDF URL
+      // 3. Fetch science image from Unsplash (official API)
+      let fetchedThumbnailUrl = "";
+      try {
+        const unsplashRes = await axios.get(
+          `https://api.unsplash.com/search/photos`,
+          {
+            params: {
+              query: `math physics science ${title}`,
+              orientation: "landscape",
+              per_page: 1,
+            },
+            headers: {
+              Authorization: "Client-ID Zm_VU9oGvbugZ5X18HQ0jgomVgSPTCS2GNABl1IADwg"
+            }
+          }
+        );
+        if (
+          unsplashRes.data &&
+          unsplashRes.data.results &&
+          unsplashRes.data.results.length > 0
+        ) {
+          fetchedThumbnailUrl = unsplashRes.data.results[0].urls.regular;
+        } else {
+          fetchedThumbnailUrl = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop";
+        }
+      } catch {
+        fetchedThumbnailUrl = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop";
+      }
+      
+      // 4. Create the course with the PDF URL and fetched image
       const newCourse = await addCourse({
         title,
         description,
         teacherId: "guest",
         teacherName: authorName,
-        pdfUrl: publicUrl,
-        thumbnailUrl: thumbnailUrl || "https://images.wallpapersden.com/image/download/tree-alone-dark-evening-4k_bWZpam2UmZqaraWkpJRobWllrWdma2U.jpg"
+        pdfUrl: publicUrl
       });
       
       if (newCourse) {
         toast.success("Course created successfully");
-        // Create a default quiz for the new course
         const defaultQuiz = await addQuiz({
           courseId: newCourse.id,
           title: `${newCourse.title} Quiz`,
@@ -245,23 +273,6 @@ export default function CourseForm({ onCourseCreated, onFormChange, submitting, 
             )}
             {pdfError && <p className="text-red-500 text-sm mt-2 animate-fade-in-fast">{pdfError}</p>}
             <p className="text-xs text-blue-400 mt-2">Upload your course material as a PDF file (max 10MB)</p>
-          </div>
-          {/* Thumbnail URL */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-1">
-              <ImageIcon className="w-5 h-5 text-blue-300" />
-              <span className="text-blue-700 font-semibold text-base">Thumbnail URL (Optional)</span>
-            </div>
-            <Label htmlFor="thumbnailUrl" className="block mb-2 text-blue-700 font-bold text-base">Thumbnail URL</Label>
-            <Input
-              id="thumbnailUrl"
-              value={thumbnailUrl}
-              onChange={(e) => { setThumbnailUrl(e.target.value); emitFormChange(); }}
-              placeholder=""
-              disabled={submitting}
-              className="bg-white/80 border-2 border-blue-100 rounded-xl px-4 py-4 text-lg text-blue-900 font-semibold focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all"
-            />
-            <p className="text-xs text-blue-400 mt-2">Enter a URL for the course thumbnail image</p>
           </div>
         </CardContent>
       </div>

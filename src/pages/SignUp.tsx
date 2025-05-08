@@ -7,67 +7,62 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-export default function Login({ hideBg = false }: { hideBg?: boolean }) {
+export default function SignUp({ hideBg = false }: { hideBg?: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, isLoading, user, logout } = useAuth();
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const { signup, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword || !username) {
       toast.error("Please fill in all fields");
       return;
     }
-
-    try {
-      const result = await login(email, password);
-      if (!result.error) {
-        toast.success("Logged in successfully");
-        navigate("/");
-      } else {
-        toast.error(result.error || "Invalid credentials");
-      }
-    } catch (error) {
-      toast.error("An error occurred");
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    const result = await signup(email, password, username);
+    if (!result.error) {
+      toast.success("Account created! Please check your email to confirm and then sign in.");
+      navigate("/login");
+    } else {
+      toast.error(result.error);
     }
   };
-
-  if (user) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-100/80 via-fuchsia-100/70 to-teal-100/80 animate-fade-in-fast">
-        <div className="relative w-full max-w-lg rounded-3xl bg-white/80 shadow-2xl backdrop-blur-xl p-10 animate-glow-card transition-all duration-500 flex flex-col items-center justify-center">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-6">You are already logged in!</h1>
-          <button
-            onClick={logout}
-            className="w-full btn-primary py-3 rounded-xl bg-edu-purple text-white font-semibold hover:bg-edu-blue transition-colors"
-          >
-            Log out
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (hideBg) {
     return (
       <div className="relative w-full max-w-lg rounded-3xl bg-white/80 shadow-2xl backdrop-blur-xl p-10 animate-glow-card transition-all duration-500 flex flex-col items-center justify-center">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Welcome to <span className="bg-gradient-to-r from-edu-purple to-edu-blue bg-clip-text text-transparent">EduQuiz</span>
+            Create your <span className="bg-gradient-to-r from-edu-purple to-edu-blue bg-clip-text text-transparent">EduQuiz</span> account
           </h1>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
+          <p className="mt-2 text-gray-600">Sign up to get started</p>
         </div>
         <Card className="bg-transparent shadow-none border-0">
           <CardHeader>
-            <CardTitle>Login</CardTitle>
+            <CardTitle>Sign Up</CardTitle>
             <CardDescription>
-              Enter your email and password to access your account
+              Enter your email and password to create an account
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -80,25 +75,24 @@ export default function Login({ hideBg = false }: { hideBg?: boolean }) {
                 />
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <a 
-                    href="#" 
-                    className="text-sm text-edu-purple hover:underline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toast.info("Please use the password you registered with.");
-                    }}
-                  >
-                    Forgot password?
-                  </a>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
               </div>
@@ -109,15 +103,14 @@ export default function Login({ hideBg = false }: { hideBg?: boolean }) {
                 className="w-full btn-primary"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? "Signing up..." : "Sign up"}
               </Button>
             </CardFooter>
           </form>
         </Card>
-        
         <div className="text-center mt-4">
-          <span className="text-gray-600">Don't have an account? </span>
-          <Link to="/signup" className="text-edu-purple font-semibold hover:underline">Sign Up</Link>
+          <span className="text-gray-600">Already have an account? </span>
+          <Link to="/login" className="text-edu-purple font-semibold hover:underline">Sign In</Link>
         </div>
       </div>
     );
@@ -133,19 +126,30 @@ export default function Login({ hideBg = false }: { hideBg?: boolean }) {
       <div className="relative w-full max-w-lg rounded-3xl bg-white/80 shadow-2xl backdrop-blur-xl p-10 animate-glow-card transition-all duration-500 flex flex-col items-center justify-center">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Welcome to <span className="bg-gradient-to-r from-edu-purple to-edu-blue bg-clip-text text-transparent">EduQuiz</span>
+            Create your <span className="bg-gradient-to-r from-edu-purple to-edu-blue bg-clip-text text-transparent">EduQuiz</span> account
           </h1>
-          <p className="mt-2 text-gray-600">Sign in to your account</p>
+          <p className="mt-2 text-gray-600">Sign up to get started</p>
         </div>
         <Card className="bg-transparent shadow-none border-0">
           <CardHeader>
-            <CardTitle>Login</CardTitle>
+            <CardTitle>Sign Up</CardTitle>
             <CardDescription>
-              Enter your email and password to access your account
+              Enter your email and password to create an account
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -158,25 +162,24 @@ export default function Login({ hideBg = false }: { hideBg?: boolean }) {
                 />
               </div>
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <a 
-                    href="#" 
-                    className="text-sm text-edu-purple hover:underline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toast.info("Please use the password you registered with.");
-                    }}
-                  >
-                    Forgot password?
-                  </a>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
               </div>
@@ -187,17 +190,16 @@ export default function Login({ hideBg = false }: { hideBg?: boolean }) {
                 className="w-full btn-primary"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? "Signing up..." : "Sign up"}
               </Button>
             </CardFooter>
           </form>
         </Card>
-        
         <div className="text-center mt-4">
-          <span className="text-gray-600">Don't have an account? </span>
-          <Link to="/signup" className="text-edu-purple font-semibold hover:underline">Sign Up</Link>
+          <span className="text-gray-600">Already have an account? </span>
+          <Link to="/login" className="text-edu-purple font-semibold hover:underline">Sign In</Link>
         </div>
       </div>
     </div>
   );
-}
+} 

@@ -28,6 +28,7 @@ export default function CourseView() {
     setShowQuizCreator(false);
     await loadCourses();
     toast.success("Quiz created successfully!");
+    navigate("/courses");
   };
   return (
     <div className="min-h-screen flex flex-col bg-gradient-main text-blue-900">

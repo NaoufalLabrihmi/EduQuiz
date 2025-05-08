@@ -3,6 +3,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Course } from "@/types";
+import axios from "axios";
+import { useEffect, useState } from "react";
 
 interface CourseCardProps {
   course: Course;
@@ -12,11 +14,41 @@ interface CourseCardProps {
 }
 
 export default function CourseCard({ course, hasQuiz, onView, onQuiz }: CourseCardProps) {
+  const [imgUrl, setImgUrl] = useState<string>("");
+  useEffect(() => {
+    let ignore = false;
+    async function fetchImg() {
+      try {
+        const res = await axios.get(
+          `https://api.unsplash.com/search/photos`,
+          {
+            params: {
+              query: `math physics science ${course.title}`,
+              orientation: "landscape",
+              per_page: 1,
+            },
+            headers: {
+              Authorization: "Client-ID Zm_VU9oGvbugZ5X18HQ0jgomVgSPTCS2GNABl1IADwg"
+            }
+          }
+        );
+        if (!ignore && res.data && res.data.results && res.data.results.length > 0) {
+          setImgUrl(res.data.results[0].urls.regular);
+        } else if (!ignore) {
+          setImgUrl("https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop");
+        }
+      } catch {
+        if (!ignore) setImgUrl("https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop");
+      }
+    }
+    fetchImg();
+    return () => { ignore = true; };
+  }, [course.title]);
   return (
     <div className="glass-card overflow-hidden shadow-2xl rounded-3xl border-2 border-blue-200/60 transition-transform duration-300 hover:-translate-y-2 hover:shadow-3xl animate-fade-in-fast flex flex-col min-h-[340px]">
       <div className="relative h-40 md:h-48 overflow-hidden group">
         <img
-          src={course.thumbnailUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop"}
+          src={imgUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop"}
           alt={course.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />

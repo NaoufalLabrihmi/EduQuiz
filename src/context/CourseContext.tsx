@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Course, Quiz, Question, QuizResult } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,21 +152,17 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         title: courseData.title,
         description: courseData.description,
         teacher_name: courseData.teacherName,
-        pdf_url: courseData.pdfUrl,
-        thumbnail_url: courseData.thumbnailUrl || null
+        pdf_url: courseData.pdfUrl
       };
-      
       // Insert into Supabase
       const { data, error } = await supabase
         .from('courses')
         .insert(dbCourse)
         .select('*')
         .single();
-      
       if (error) {
         throw error;
       }
-      
       // Transform returned data to our app type
       const newCourse: Course = {
         id: data.id,
@@ -176,17 +171,14 @@ export const CourseProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         teacherId: "guest",
         teacherName: data.teacher_name,
         pdfUrl: data.pdf_url || "",
-        thumbnailUrl: data.thumbnail_url || undefined,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at)
       };
-      
       // Update local state
       setState(prev => ({
         ...prev,
         courses: [...prev.courses, newCourse]
       }));
-      
       return newCourse;
     } catch (error) {
       console.error("Error adding course to Supabase:", error);

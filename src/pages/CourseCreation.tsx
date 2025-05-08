@@ -64,7 +64,7 @@ export default function CourseCreation() {
       const newQuiz = await addQuiz(quizToAdd);
       if (!newQuiz) throw new Error("Failed to create quiz");
       toast.success("Course and quiz created successfully!");
-      navigate(`/courses/${newCourse.id}`);
+      navigate("/courses");
     } catch (error) {
       toast.error(error.message || "Failed to create course and quiz");
     } finally {

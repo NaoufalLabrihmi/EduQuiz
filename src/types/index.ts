@@ -1,4 +1,3 @@
-
 export type UserRole = 'teacher' | 'student';
 
 export interface User {
@@ -16,7 +15,6 @@ export interface Course {
   teacherId: string;
   teacherName: string;
   pdfUrl: string;
-  thumbnailUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }

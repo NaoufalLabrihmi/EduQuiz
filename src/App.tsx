@@ -4,9 +4,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { CourseProvider } from "./context/CourseContext";
+import type { ReactNode } from "react";
 
 // Pages
 import HomePage from "./pages/HomePage";
@@ -18,8 +19,15 @@ import CourseCreation from "./pages/CourseCreation";
 import AboutPage from "./pages/AboutPage";
 import NotFound from "./pages/NotFound";
 import CourseQuizView from "./pages/CourseQuizView";
+import SignUp from "@/pages/SignUp";
 
 const queryClient = new QueryClient();
+
+function PrivateRoute({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  return user ? children : <Navigate to="/login" replace />;
+}
 
 export default function App() {
   return (
@@ -33,10 +41,11 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<SignUp />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/courses" element={<CourseList />} />
                 <Route path="/courses/:courseId" element={<CourseView />} />
-                <Route path="/create-course" element={<CourseCreation />} />
+                <Route path="/create-course" element={<PrivateRoute><CourseCreation /></PrivateRoute>} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/courses/:courseId/quiz" element={<CourseQuizView />} />
                 <Route path="*" element={<NotFound />} />
